@@ -1,0 +1,268 @@
+---
+title: "DiD Course Problem Set 2"
+author: "Pedro Scatimburgo"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    theme: readable
+    toc: true
+    number_sections: true
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+library(tidyverse)
+```
+
+<style type="text/css">
+
+h1.title {
+  font-size: 24px;
+  color: black;
+  text-align: center;
+}
+subtitle {
+  font-size: 24px;
+  color: black;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 16px;
+  font-family: "Kaleko205Text-Bold", Kaleko 205, Bold;
+  color: black;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 16px;
+  font-family: "Kaleko205Text-Bold", Kaleko 205, Bold;
+  color: black;
+  text-align: center;
+}
+</style>
+
+# Problem Set 1
+
+## Define potential outcomes depending on potential treatment sequences.
+
+$Y_{i,1}(d_1)$, $Y_{i,2}(d_1,d_2)$, $Y_{i,3}(d_1,d_2,d_3)$.
+
+## Define the average treatment effect at time $t$ of taking a specific treatment sequence compared to never being treated, among units that take that given specified treatment sequence.
+
+Consider a specific treatment $d^\prime$. Let $\vec{0} = (0,0,0)$, $d^\prime = (d_1',d_2',d_3')$. Then:
+
+\begin{equation}
+ATE(d',\vec{0},t) = \mathbf{E}\left[Y_{i,t}(d')-Y_{i,t}(\vec{0})|d=d'\right]
+\end{equation}
+
+## Define the average treatment effect at time $t$ of taking a specific treatment sequence compared to never being treated, among units that remained untreated until $t=3$.
+
+\begin{equation}
+ATE(d',\vec{0},t) = \mathbf{E}\left[Y_{i,t}(d')-Y_{i,t}(\vec{0})|d=(0,0,1)\right]
+\end{equation}
+
+## Define the overall average treatment effect at time $t$ of taking a specific treatment sequence compared to never being treated.
+
+\begin{equation}
+ATE(d',\vec{0},t) = \mathbf{E}\left[Y_{i,t}(d')-Y_{i,t}(\vec{0})\right]
+\end{equation}
+
+## Define potential outcomes depending on treatment dosages.
+
+$Y_{i,t}(d_1)$, $Y_{i,2}(d_1,d_2)$, where $d = (d_1,d_2) >> 0$.
+
+## Define the overall average treatment effect at time $t=2$ of receiving dosage $d$ versus not receiving any treatment.
+
+\begin{equation}
+ATE(d,0,2) = \mathbf{E}\left[Y_{i,2}(0,d)-Y_{i,2}(0,0)\right]
+\end{equation}
+
+## Define the overall average treatment effect at time $t=2$ of receiving dosage $d$ versus receiving dosage $d^\prime$.
+
+\begin{equation}
+ATE(d,d',2) = \mathbf{E}\left[Y_{i,2}(0,d)-Y_{i,2}(0,d')\right]
+\end{equation}
+
+## Define the average treatment effect at time $t=2$ of receiving dosage $d$ versus not receiving any treatment, among units who received dosage $d$.
+
+\begin{equation}
+ATE(d,0,2) = \mathbf{E}\left[Y_{i,2}(0,d)-Y_{i,2}(0,0)|d^*=d>0\right]
+\end{equation}
+
+## Define the average treatment effect at time $t=2$ of marginally increasing treatment dosage $d$, among units who received dosage $d$. Discuss the discrete and continuous cases separately.
+
+In the discrete case:
+
+\begin{equation}
+
+ATE(d+\varepsilon,d,2) = \mathbb{E}\left[Y_{i,2}(0,d+\varepsilon)-Y_{i,2}(0,d)|d^*=d>0\right]
+
+\end{equation}
+
+In the continuous case:
+
+\begin{equation}
+
+ATE = \mathbb{E}\left[\left.\frac{\partial Y_{i,t}(0,d)}{\partial d} \right\vert d^*=d>0 \right]
+
+\end{equation}
+
+## Define the overall average treatment effect at time $t=2$ of marginally increasing treatment dosage $d$. Discuss the discrete and continuous case separately.
+
+In the discrete case:
+
+\begin{equation}
+
+ATE(d+\varepsilon,d,2) = \mathbb{E}\left[Y_{i,2}(0,d+\varepsilon)-Y_{i,2}(0,d)\right]
+
+\end{equation}
+
+In the continuous case:
+
+\begin{equation}
+
+ATE = \mathbb{E}\left[\frac{\partial Y_{i,t}(0,d)}{\partial d}\right]
+
+\end{equation}
+
+
+## The above marginal average treatment effects are “local“ to a dosage $d$. Can you think of a more aggregate treatment effect measure that may summarize the above marginal average treatment effects across different dosages $d$?
+
+# Problem Set 2
+
+## Load the dataset in your statistical software of choice.
+
+```{r}
+data <- haven::read_dta("data/ehec_data.dta")
+```
+
+
+## For simplicity, let’s subset the data such that we have only 2 time periods, ``year = 2013`` and ``year = 2014``.
+
+```{r}
+data <- data %>%
+  filter(year %in% c("2013","2014"))
+```
+
+
+## Ensure that ``stfips`` and ``year`` are numerical variables (this may matter in some software like R).
+
+```{r}
+data <- data %>%
+  mutate(
+    year = as.numeric(as.character(year)),
+    stfips = as.numeric(as.character(stfips))
+  )
+```
+
+
+## Create a treatment group dummy that takes value 1 if a state expanded Medicaid by 2014, and 0 otherwise. Also create a post-treatment period dummy that takes value 1 if ``year = 2014`` and 0 otherwise.
+
+```{r}
+data <- data %>%
+  mutate(
+    treatment = replace_na(ifelse(yexp2 == 2014, 1, 0), 0),
+    post_treatment = ifelse(year == 2014, 1, 0),
+    product = treatment*post_treatment
+  )
+```
+
+
+## Compute the DiD estimator for the ATT “by-hand”, i.e., using simple comparisons of means. Repeat the same exercise by using W as weights.
+
+```{r}
+# Without using W as weights:
+
+first_diff <- mean(data %>% filter(treatment == 1 & post_treatment == 1) %>% pull(dins)) - mean(data %>% filter(treatment == 1 & post_treatment == 0) %>% pull(dins))
+
+second_diff <- mean(data %>% filter(treatment == 0 & post_treatment == 1) %>% pull(dins)) - mean(data %>% filter(treatment == 0 & post_treatment == 0) %>% pull(dins))
+
+(did_estimator <- first_diff - second_diff)
+
+# Using W as weights:
+
+first_diff_W <- weighted.mean(data %>% filter(treatment == 1 & post_treatment == 1) %>% pull(dins), data %>% filter(treatment == 1 & post_treatment == 1) %>% pull(W)) - weighted.mean(data %>% filter(treatment == 1 & post_treatment == 0) %>% pull(dins), data %>% filter(treatment == 1 & post_treatment == 0) %>% pull(W))
+
+second_diff_W <- weighted.mean(data %>% filter(treatment == 0 & post_treatment == 1) %>% pull(dins), data %>% filter(treatment == 0 & post_treatment == 1) %>% pull(W)) - weighted.mean(data %>% filter(treatment == 0 & post_treatment == 0) %>% pull(dins), data %>% filter(treatment == 0 & post_treatment == 0) %>% pull(W))
+
+(did_estimator_W <- first_diff_W - second_diff_W)
+```
+
+
+## Compute the DiD estimator for the ATT using regression with the treatment group, post-treatment timing dummies, as well as their interactions. Repeat the same exercise by using W as weights.
+
+```{r}
+# Without using W as weights:
+
+regression <- data %>%
+  estimatr::lm_robust(
+    formula = dins ~ treatment + post_treatment + treatment*post_treatment
+  )
+
+(regression$coefficients[4])
+
+# Using W as weights:
+
+regression_W <- data %>%
+  estimatr::lm_robust(
+    formula = dins ~ treatment + post_treatment + treatment*post_treatment,
+    weights = W
+  )
+
+(regression_W$coefficients[4])
+```
+
+
+## Compute the DiD estimator for the ATT using regression with state fixed effects, time fix effects, and the treatment dummy that takes value 1 if a unit is treated in the year 2014, and 0 otherwise. Repeat the same exercise by using W as weights.
+
+```{r}
+# Without using W as weights:
+
+regression_FE <- data %>%
+  estimatr::lm_robust(
+    formula = dins ~ product,
+    fixed_effects = ~ stfips + year
+  )
+
+(regression_FE$coefficients[1])
+
+# Using W as weights:
+
+regression_FE_W <- data %>%
+  estimatr::lm_robust(
+    formula = dins ~ product,
+    fixed_effects = ~ stfips + year,
+    weights = W
+  )
+
+(regression_FE_W$coefficients[1])
+```
+
+
+## Conduct statistical inference using your regression specifications. Make sure to cluster at the state level. What do the results suggest?
+
+```{r}
+# Specification from Question 6:
+
+regression_clustered <- data %>%
+  estimatr::lm_robust(
+    formula = dins ~ treatment + post_treatment + treatment*post_treatment,
+    cluster = stfips
+  )
+
+(regression_clustered$p.value[4])
+
+# Specification from Question 7:
+
+regression_FE_clustered <- data %>%
+  estimatr::lm_robust(
+    formula = dins ~ product,
+    fixed_effects = ~ stfips + year,
+    cluster = stfips
+  )
+
+(regression_FE_clustered$p.value[1])
+```
+
+Both p-values are the same, as we expected. We reject the null hypothesis of no treatment effect at the 1% significance level.
